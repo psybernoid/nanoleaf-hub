@@ -70,7 +70,7 @@ The `data/` directory is the only persistent state. Everything else is stateless
 ```yaml
 services:
   nanoleaf-hub:
-    build: .
+    image: ghcr.io/psybernoid/nanoleaf-hub:latest
     container_name: nanoleaf-hub
     restart: unless-stopped
     ports:
