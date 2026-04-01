@@ -1,3 +1,7 @@
+⚠️ NOTICE: THIS CODE WAS PRODUCED WITH THE ASSISTANCE OF CLAUDE AI  
+It is not in anyway secure. Do NOT expose this to the internet as there's no authentication.  
+Recommended to have this and the Nanoleaf devices on a segmented VLAN
+
 # Nanoleaf Hub
 
 A self-hosted, Dockerised web application for managing and visualising Nanoleaf panel clusters. Combines a panel layout editor (Studio), a real-time audio visualiser driven by Music Assistant, and cluster management — all in one container.
