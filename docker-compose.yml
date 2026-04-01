@@ -1,0 +1,13 @@
+services:
+  nanoleaf-hub:
+    build: .
+    container_name: nanoleaf-hub
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    environment:
+      - PORT=3000
+      - DATA_DIR=/data
+      - NODE_ENV=production
