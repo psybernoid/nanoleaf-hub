@@ -1,20 +1,13 @@
-FROM node:20-alpine AS base
-
-# Install Python + pip + numpy/aiohttp for the visualiser
-RUN apk add --no-cache python3 py3-pip py3-numpy && \
-    pip3 install aiohttp --break-system-packages
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Node deps
 COPY package.json ./
 RUN npm install --omit=dev
 
-# App files
-COPY server.js visualiser.py ./
+COPY server.js ./
 COPY public/ ./public/
 
-# Data dir (bind mount this in production)
 RUN mkdir -p /data
 
 ENV DATA_DIR=/data
