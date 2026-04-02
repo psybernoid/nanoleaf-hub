@@ -1,7 +1,7 @@
 {
   "name": "nanoleaf-hub",
   "version": "2.0.0",
-  "description": "Nanoleaf cluster management, studio and audio visualiser",
+  "description": "Nanoleaf panel studio and cluster manager",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
