@@ -232,6 +232,45 @@
         </div>
       </div>
     </div>
+
+    <div class="sidebar-section">
+      <h3>Animation Effects</h3>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div>
+          <div style="font-size:0.67rem;color:var(--text-dim);margin-bottom:5px;font-family:'Space Mono',monospace;letter-spacing:0.08em">TYPE</div>
+          <select id="anim-type" onchange="onAnimTypeChange()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.83rem;padding:6px 9px;outline:none;cursor:pointer">
+            <optgroup label="Colour Animations">
+              <option value="6970681a-20b5-4c5e-8813-bdaebc4ee4fa">Flow</option>
+              <option value="081f7b04-fd53-4e7b-8b7c-583c5b7d48c7">Wheel</option>
+              <option value="b3fd9ce1-1527-4b22-80e0-8d18c7b7476a">Fade</option>
+              <option value="ba632d3e-9c2b-4413-a965-510c839b3f71">Random</option>
+              <option value="70b7c636-6bf8-491f-89c1-f4103508d642">Highlight</option>
+            </optgroup>
+            <optgroup label="Rhythm (Microphone)">
+              <option value="fe0d0ba8-741f-4210-940c-454eceed010f">Beat Drop</option>
+              <option value="2ef21f29-ea2f-4600-91fa-ecefdfb5f67c">Energy</option>
+              <option value="23e70ff4-458c-4852-826f-9315d89ee6ed">Meteor Shower</option>
+              <option value="6ecb6f00-01a3-40ba-a849-9c05e9c81c33">Flames</option>
+              <option value="a02e4d0c-2f65-4a4d-8344-2350bff0a5cc">Equalizer</option>
+            </optgroup>
+          </select>
+        </div>
+        <div id="anim-options" style="display:flex;flex-direction:column;gap:6px"></div>
+        <div>
+          <div style="font-size:0.67rem;color:var(--text-dim);margin-bottom:5px;font-family:'Space Mono',monospace;letter-spacing:0.08em">PALETTE</div>
+          <div id="anim-palette" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px"></div>
+          <div style="display:flex;gap:5px;align-items:center">
+            <input type="color" id="anim-colour-add" value="#7c6fff" style="width:32px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);cursor:pointer;padding:2px">
+            <button class="btn btn-ghost" style="font-size:0.6rem;padding:4px 8px;flex:1" onclick="addAnimColour()">+ ADD COLOUR</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-success" style="flex:1;font-size:0.62rem;padding:6px 8px" onclick="previewAnim()">PREVIEW</button>
+          <button class="btn btn-primary" style="flex:1;font-size:0.62rem;padding:6px 8px" onclick="openSaveAnimModal()">SAVE</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <div class="canvas-area">
@@ -301,10 +340,25 @@
   </div>
 </div>
 
+<!-- SAVE ANIMATION MODAL -->
+<div class="modal-backdrop" id="modal-save-anim">
+  <div class="modal" style="max-width:360px">
+    <h2>SAVE ANIMATION</h2>
+    <div class="field">
+      <label>Effect Name</label>
+      <input id="save-anim-name" type="text" placeholder="My Animation" maxlength="32">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-save-anim')">CANCEL</button>
+      <button class="btn btn-primary" onclick="saveAnim()">SAVE TO DEVICE</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
-// â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// State
 let clusters = [], activeCfg = null, editingId = null;
 let panels = [], controllerPanel = null;
 let selection = new Set(), panelColourMap = {};
@@ -316,7 +370,7 @@ let isDragging = false, dragStart = {x:0,y:0}, offsetStart = {x:0,y:0};
 const PANEL_R = 35;
 const SHAPE_TYPES = { 0:'triangle',1:'triangle',2:'hexagon',3:'triangle',4:'triangle',7:'hexagon',8:'square',9:'triangle',12:'controller' };
 
-// â”€â”€ Clusters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Clusters
 async function loadClusters() {
   const r = await fetch('/api/clusters');
   clusters = await r.json();
@@ -350,9 +404,8 @@ function renderClusterList() {
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// â”€â”€ Modals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Modals
 function openManageModal() { renderClusterList(); openModal('modal-manage'); }
-
 function openAddModal() {
   editingId = null;
   document.getElementById('modal-edit-title').textContent = 'ADD CLUSTER';
@@ -360,7 +413,6 @@ function openAddModal() {
   document.getElementById('edit-delete-row').style.display = 'none';
   closeModal('modal-manage'); openModal('modal-edit');
 }
-
 function openEditModal(id) {
   const c = clusters.find(x => x.id === id);
   if (!c) return;
@@ -372,7 +424,6 @@ function openEditModal(id) {
   document.getElementById('edit-delete-row').style.display = 'flex';
   closeModal('modal-manage'); openModal('modal-edit');
 }
-
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-backdrop').forEach(bd => bd.addEventListener('click', e => { if (e.target === bd) bd.classList.remove('open'); }));
@@ -417,7 +468,6 @@ function disconnectCurrent() {
 
 function onClusterChange() { if (connected) { connected = false; setStatus('not connected',''); } }
 
-// â”€â”€ Token helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function getTokenForEdit() {
   const ip = document.getElementById('edit-ip').value.trim();
   if (!ip) { toast('Enter the IP address first','err'); return; }
@@ -430,7 +480,7 @@ async function getTokenForEdit() {
   } catch { toast('Could not reach device','err'); }
 }
 
-// â”€â”€ Connect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Connect
 async function connectSelected() {
   const id = parseInt(document.getElementById('cluster-select').value);
   if (!id) { toast('Select a cluster first','err'); return; }
@@ -449,7 +499,6 @@ async function connectSelected() {
     const bri = data.state?.brightness?.value ?? 50;
     document.getElementById('brightness').value = bri;
     document.getElementById('brightness-val').textContent = bri;
-    // Restore saved rotation for this cluster
     const savedRot = parseInt(localStorage.getItem('nl_rot_' + c.id)) || 0;
     rotation = savedRot;
     document.getElementById('rotation').value = savedRot;
@@ -461,7 +510,7 @@ async function connectSelected() {
   finally { setLoading(false); }
 }
 
-// â”€â”€ Colour system â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Colour system
 function hslToRgb(h,s,l) {
   s/=100;l/=100;const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l),f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
   return {r:Math.round(f(0)*255),g:Math.round(f(8)*255),b:Math.round(f(4)*255)};
@@ -487,7 +536,6 @@ function updateColourUI() {
   document.getElementById('sat-strip').style.background=`linear-gradient(to right,hsl(${h},0%,50%),hsl(${h},100%,50%))`;
   document.getElementById('bright-strip').style.background=`linear-gradient(to right,#000,hsl(${h},${s}%,50%),#fff)`;
 }
-
 function makeStripDraggable(id,cb) {
   const strip=document.getElementById(id);let active=false;
   const val=e=>{const r=strip.getBoundingClientRect(),cx=e.touches?e.touches[0].clientX:e.clientX;return Math.max(0,Math.min(1,(cx-r.left)/r.width));};
@@ -504,7 +552,7 @@ makeStripDraggable('bright-strip',v=>{currentColour.l=Math.round(v*100);updateCo
 function hexInput(v){if(v.length===7&&v.startsWith('#')){const rgb=hexToRgb(v);if(rgb){currentColour=rgbToHsl(rgb.r,rgb.g,rgb.b);updateColourUI();}}}
 updateColourUI();
 
-// â”€â”€ Canvas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Canvas
 const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d'),wrap=document.getElementById('canvas-wrap');
 function resizeCanvas(){const r=wrap.getBoundingClientRect();canvas.width=r.width;canvas.height=r.height;draw();}
 new ResizeObserver(resizeCanvas).observe(wrap);
@@ -529,7 +577,6 @@ function draw() {
   ctx.translate(canvas.width/2+canvasOffset.x, canvas.height/2+canvasOffset.y);
   ctx.scale(canvasScale,canvasScale);
   ctx.rotate(rotation*Math.PI/180);
-
   if(controllerPanel) {
     const pts=getPanelPath(controllerPanel);
     drawPolygon(pts);
@@ -541,7 +588,6 @@ function draw() {
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText('CTRL',controllerPanel.x,controllerPanel.y);
   }
-
   for(const p of panels) {
     const pts=getPanelPath(p);
     const col=panelColourMap[p.id]||{r:38,g:38,b:60};
@@ -588,7 +634,7 @@ canvas.addEventListener('mousemove',e=>{if(isDragging){canvasOffset.x=offsetStar
 canvas.addEventListener('mouseup',()=>{if(isDragging){isDragging=false;canvas.style.cursor='crosshair';}});
 canvas.addEventListener('wheel',e=>{e.preventDefault();canvasScale=Math.max(0.2,Math.min(5,canvasScale*(e.deltaY<0?1.1:0.9)));draw();},{passive:false});
 
-// â”€â”€ Colour ops â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Colour ops
 function applyColour(silent) {
   if(!selection.size) return;
   const {r,g,b}=hslToRgb(currentColour.h,currentColour.s,currentColour.l);
@@ -596,7 +642,6 @@ function applyColour(silent) {
   updateSelectionInfo();draw();
   if(!silent)toast('Colour applied -- push to device when ready','ok');
 }
-
 function pushToDevice() {
   if(!connected){toast('Not connected','err');return;}
   const panelColours=panels.map(p=>({id:p.id,...(panelColourMap[p.id]||{r:0,g:0,b:0})}));
@@ -608,7 +653,6 @@ function pushToDevice() {
     .catch(e=>toast('Push failed: '+e.message,'err'))
     .finally(()=>setLoading(false));
 }
-
 async function saveEffectToDevice() {
   if(!connected){toast('Not connected','err');return;}
   const effectName=document.getElementById('save-effect-name').value.trim();
@@ -625,7 +669,6 @@ async function saveEffectToDevice() {
   } catch(e){toast('Save failed: '+e.message,'err');}
   finally{setLoading(false);}
 }
-
 function selectAll(){panels.forEach(p=>selection.add(p.id));updateSelectionInfo();draw();}
 function clearSelection(){selection.clear();updateSelectionInfo();draw();}
 function updateSelectionInfo(){
@@ -634,16 +677,11 @@ function updateSelectionInfo(){
   el.innerHTML=`<strong>${selection.size}</strong> panel${selection.size>1?'s':''} selected`;
 }
 
-// â”€â”€ Tools / orientation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Tools
 function setTool(t){tool=t;document.getElementById('tool-paint').classList.toggle('active',t==='paint');document.getElementById('tool-select').classList.toggle('active',t==='select');canvas.style.cursor=t==='paint'?'crosshair':'pointer';}
+function rotateCanvas(deg){rotation=parseInt(deg)||0;draw();if(activeCfg)localStorage.setItem('nl_rot_'+activeCfg.id,rotation);}
 
-function rotateCanvas(deg) {
-  rotation=parseInt(deg)||0;
-  draw();
-  if(activeCfg) localStorage.setItem('nl_rot_'+activeCfg.id, rotation);
-}
-
-// â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Layout
 async function reloadLayout() {
   if(!connected||!activeCfg)return;
   setLoading(true);
@@ -702,7 +740,7 @@ async function deleteEffect(e,name,itemEl){
   }catch(ex){toast('Delete failed: '+ex.message,'err');}
 }
 
-// â”€â”€ Fit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Fit
 function fitView() {
   const all=[...panels,...(controllerPanel?[controllerPanel]:[])];
   if(!all.length)return;
@@ -715,18 +753,174 @@ function fitView() {
   draw();
 }
 
-// â”€â”€ Device controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Device controls
 async function setPower(on){if(!connected)return;await fetch(`/api/power?ip=${activeCfg.ip}&token=${activeCfg.token}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({on})});}
 function brightnessInput(v){document.getElementById('brightness-val').textContent=v;}
 function setBrightness(v){if(!connected)return;fetch(`/api/brightness?ip=${activeCfg.ip}&token=${activeCfg.token}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:parseInt(v)})});}
 async function identify(){if(!connected)return;await fetch(`/api/identify?ip=${activeCfg.ip}&token=${activeCfg.token}`,{method:'POST'});toast('Panels flashing...','ok');}
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Helpers
 function setStatus(t,c){document.getElementById('status-text').textContent=t;document.getElementById('status-dot').className=c;}
 function setLoading(s){document.getElementById('loading').classList.toggle('show',s);}
 let toastTimer;
 function toast(msg,type){const el=document.getElementById('toast');el.textContent=msg;el.className='show '+(type||'');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.className='',3200);}
 
+// Animation Editor
+const PLUGIN_OPTIONS = {
+  '6970681a-20b5-4c5e-8813-bdaebc4ee4fa': { type:'color', opts:[
+    {name:'linDirection',label:'Direction',type:'select',options:['left','right','up','down'],default:'right'},
+    {name:'transTime',label:'Transition Time',type:'int',min:1,max:600,default:24},
+    {name:'delayTime',label:'Delay Time',type:'int',min:0,max:600,default:0},
+    {name:'nColorsPerFrame',label:'Colours per Frame',type:'int',min:1,max:8,default:4},
+  ]},
+  '081f7b04-fd53-4e7b-8b7c-583c5b7d48c7': { type:'color', opts:[
+    {name:'transTime',label:'Transition Time',type:'int',min:1,max:600,default:30},
+    {name:'delayTime',label:'Delay Time',type:'int',min:0,max:600,default:0},
+  ]},
+  'b3fd9ce1-1527-4b22-80e0-8d18c7b7476a': { type:'color', opts:[
+    {name:'transTime',label:'Transition Time',type:'int',min:1,max:600,default:50},
+    {name:'delayTime',label:'Delay Time',type:'int',min:0,max:600,default:50},
+  ]},
+  'ba632d3e-9c2b-4413-a965-510c839b3f71': { type:'color', opts:[
+    {name:'transTime',label:'Transition Time',type:'int',min:1,max:600,default:20},
+    {name:'delayTime',label:'Delay Time',type:'int',min:0,max:600,default:20},
+  ]},
+  '70b7c636-6bf8-491f-89c1-f4103508d642': { type:'color', opts:[
+    {name:'transTime',label:'Transition Time',type:'int',min:1,max:600,default:20},
+    {name:'delayTime',label:'Delay Time',type:'int',min:0,max:600,default:20},
+  ]},
+  'fe0d0ba8-741f-4210-940c-454eceed010f': { type:'rhythm', opts:[
+    {name:'transTime',label:'Sensitivity',type:'int',min:1,max:100,default:25},
+  ]},
+  '2ef21f29-ea2f-4600-91fa-ecefdfb5f67c': { type:'rhythm', opts:[
+    {name:'transTime',label:'Transition Time',type:'int',min:1,max:100,default:20},
+  ]},
+  '23e70ff4-458c-4852-826f-9315d89ee6ed': { type:'rhythm', opts:[
+    {name:'transTime',label:'Transition Time',type:'int',min:1,max:100,default:20},
+  ]},
+  '6ecb6f00-01a3-40ba-a849-9c05e9c81c33': { type:'rhythm', opts:[
+    {name:'transTime',label:'Transition Time',type:'int',min:1,max:100,default:10},
+  ]},
+  'a02e4d0c-2f65-4a4d-8344-2350bff0a5cc': { type:'rhythm', opts:[
+    {name:'transTime',label:'Transition Time',type:'int',min:1,max:100,default:15},
+  ]},
+};
+
+let animPalette = ['#7c6fff','#ff6b9d','#4fffb0'];
+
+function onAnimTypeChange() {
+  const uuid = document.getElementById('anim-type').value;
+  const plugin = PLUGIN_OPTIONS[uuid];
+  const container = document.getElementById('anim-options');
+  if (!plugin || !plugin.opts.length) { container.innerHTML = ''; return; }
+  container.innerHTML = plugin.opts.map(o => {
+    const id = 'anim-opt-' + o.name;
+    if (o.type === 'select') return `
+      <div>
+        <div style="font-size:0.67rem;color:var(--text-dim);margin-bottom:4px;font-family:'Space Mono',monospace">${o.label.toUpperCase()}</div>
+        <select id="${id}" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.83rem;padding:5px 8px;outline:none">
+          ${o.options.map(v => `<option value="${v}" ${v===o.default?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>`;
+    return `
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:0.67rem;color:var(--text-dim);font-family:'Space Mono',monospace">${o.label.toUpperCase()}</span>
+          <span id="${id}-val" style="font-size:0.67rem;color:var(--accent);font-family:'Space Mono',monospace">${o.default}</span>
+        </div>
+        <input type="range" id="${id}" min="${o.min}" max="${o.max}" value="${o.default}"
+          oninput="document.getElementById('${id}-val').textContent=this.value">
+      </div>`;
+  }).join('');
+  const isRhythm = plugin.type === 'rhythm';
+  let note = document.getElementById('anim-rhythm-note');
+  if (!note) {
+    note = document.createElement('div');
+    note.id = 'anim-rhythm-note';
+    note.style = 'font-size:0.68rem;color:var(--accent2);line-height:1.4;margin-top:4px';
+    container.appendChild(note);
+  }
+  note.textContent = isRhythm ? 'Uses built-in microphone. Ensure rhythm module is enabled in Nanoleaf app settings.' : '';
+  renderAnimPalette();
+}
+
+function renderAnimPalette() {
+  const container = document.getElementById('anim-palette');
+  container.innerHTML = animPalette.map((col, i) => `
+    <div style="width:28px;height:28px;border-radius:5px;background:${col};border:2px solid rgba(255,255,255,0.15);cursor:pointer;title:'Click to remove'"
+         onclick="removeAnimColour(${i})" title="Click to remove"></div>
+  `).join('');
+}
+
+function addAnimColour() {
+  const col = document.getElementById('anim-colour-add').value;
+  if (animPalette.length >= 10) { toast('Maximum 10 colours','err'); return; }
+  animPalette.push(col);
+  renderAnimPalette();
+}
+
+function removeAnimColour(i) {
+  if (animPalette.length <= 1) { toast('Need at least one colour','err'); return; }
+  animPalette.splice(i, 1);
+  renderAnimPalette();
+}
+
+function buildAnimEffect(name, command) {
+  const uuid = document.getElementById('anim-type').value;
+  const plugin = PLUGIN_OPTIONS[uuid];
+  if (!plugin) return null;
+  function hexToHsb(hex) {
+    hex = hex.replace('#','');
+    const r=parseInt(hex.slice(0,2),16)/255, g=parseInt(hex.slice(2,4),16)/255, b=parseInt(hex.slice(4,6),16)/255;
+    const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min;
+    let h=0;
+    if(d>0){if(max===r)h=((g-b)/d)%6;else if(max===g)h=(b-r)/d+2;else h=(r-g)/d+4;h=Math.round(h*60);if(h<0)h+=360;}
+    return {hue:h, saturation:Math.round(max?d/max*100:0), brightness:Math.round(max*100), probability:0};
+  }
+  const palette = animPalette.map(hexToHsb);
+  const pluginOptions = plugin.opts.map(o => {
+    const el = document.getElementById('anim-opt-' + o.name);
+    if (!el) return null;
+    const value = o.type === 'int' ? parseInt(el.value) : el.value;
+    return { name: o.name, value };
+  }).filter(Boolean);
+  pluginOptions.push({ name: 'loop', value: true });
+  return { command, animName: name, animType: 'plugin', colorType: 'HSB', pluginType: plugin.type, pluginUuid: uuid, palette, pluginOptions };
+}
+
+function previewAnim() {
+  if (!connected) { toast('Connect to a cluster first','err'); return; }
+  const effect = buildAnimEffect('Preview', 'display');
+  if (!effect) return;
+  fetch(`/api/effect?ip=${activeCfg.ip}&token=${activeCfg.token}`, {
+    method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ write: effect })
+  }).then(r => r.ok ? toast('Animation previewing on device','ok') : toast('Preview failed','err'))
+    .catch(e => toast(e.message,'err'));
+}
+
+function openSaveAnimModal() {
+  if (!connected) { toast('Connect to a cluster first','err'); return; }
+  document.getElementById('save-anim-name').value = '';
+  openModal('modal-save-anim');
+}
+
+async function saveAnim() {
+  const name = document.getElementById('save-anim-name').value.trim();
+  if (!name) { toast('Enter a name','err'); return; }
+  const effect = buildAnimEffect(name, 'add');
+  if (!effect) return;
+  try {
+    const r = await fetch(`/api/effect?ip=${activeCfg.ip}&token=${activeCfg.token}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ write: effect })
+    });
+    if (r.ok) { closeModal('modal-save-anim'); await loadEffects(); toast(`"${name}" saved to device`,'ok'); }
+    else { const d = await r.json(); toast('Save failed: ' + (d.error||r.status),'err'); }
+  } catch(e) { toast(e.message,'err'); }
+}
+
+onAnimTypeChange();
 resizeCanvas();
 loadClusters();
 </script>

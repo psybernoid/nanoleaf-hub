@@ -28,7 +28,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// â”€â”€ Cluster CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Cluster CRUD ──────────────────────────────────────────────────────────────
 app.get('/api/clusters', (req, res) => {
   res.json(db.prepare('SELECT id, name, ip, token, created FROM clusters ORDER BY name').all());
 });
@@ -64,7 +64,7 @@ app.delete('/api/clusters/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-// â”€â”€ Nanoleaf proxy helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Nanoleaf proxy helper ─────────────────────────────────────────────────────
 async function nl(ip, token, method, path, body) {
   const url  = `http://${ip}:16021/api/v1/${token}${path}`;
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
@@ -75,7 +75,7 @@ async function nl(ip, token, method, path, body) {
   catch { return { status: r.status, body: text || {} }; }
 }
 
-// â”€â”€ Nanoleaf endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Nanoleaf endpoints ────────────────────────────────────────────────────────
 app.get('/api/info', async (req, res) => {
   const { ip, token } = req.query;
   try { const r = await nl(ip, token, 'GET', '/'); res.status(r.status).json(r.body); }
@@ -162,6 +162,14 @@ app.post('/api/auth', async (req, res) => {
   } catch (e) { res.status(503).json({ error: e.message }); }
 });
 
-// â”€â”€ Start â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Generic effect write — passes the body's "write" object directly to the device
+// Used by push-to-device (static display), save-as-effect (add), and animation editor
+app.put('/api/effect', async (req, res) => {
+  const { ip, token } = req.query;
+  try { const r = await nl(ip, token, 'PUT', '/effects', req.body); res.status(r.status).json(r.body || { ok: r.status < 300 }); }
+  catch (e) { res.status(503).json({ error: e.message }); }
+});
+
+// ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Nanoleaf Hub running on http://0.0.0.0:${PORT}`));
